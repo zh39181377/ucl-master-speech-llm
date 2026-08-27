@@ -1,0 +1,42 @@
+# model path parameters
+model_name_or_path: /myriadfs/home/ucjvhai/Scratch/open_source_llms/deepseek-moe-16b-chat-masked
+trust_remote_code: true
+
+# fine tuning methods and network layer parameters
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_target: q_proj,v_proj,k_proj,o_proj
+# unfreeze and train these two layers after expanding the vocabulary
+additional_target: embed_tokens,lm_head
+
+# dataset parameters
+dataset: noise_simulation_data
+template: deepseek
+cutoff_len: 2048
+max_samples: 1500
+overwrite_cache: true
+preprocessing_num_workers: 8
+
+# training hyperparameters
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 2.0e-4
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_steps: 100
+
+# output and log parameters
+output_dir: /myriadfs/home/ucjvhai/Scratch/outputs/deepseek_mask_lora
+logging_steps: 10
+save_steps: 100
+plot_loss: true
+overwrite_output_dir: true
+
+
+# hardware Precision Parameters
+bf16: true
+upcast_layernorm: true
+flash_attn: fa2
+optim: adamw_torch
+ddp_timeout: 180000000

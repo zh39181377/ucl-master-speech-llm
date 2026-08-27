@@ -1,0 +1,4 @@
+model_name_or_path: /myriadfs/home/ucjvhai/Scratch/open_source_llms/deepseek-moe-16b-chat-masked  
+adapter_name_or_path: /myriadfs/home/ucjvhai/Scratch/outputs/deepseek_mask_lora
+template: deepseek
+finetuning_type: lora

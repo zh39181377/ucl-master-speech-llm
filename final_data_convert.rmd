@@ -1,0 +1,149 @@
+```{r}
+# install.packages(c("readxl", "dplyr", "tidyr", "stringr", "jsonlite"))
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(jsonlite)
+file_path <- choose.files()
+df2 <- read_excel(file_path)
+
+
+threshold_score <- 5
+
+df_processed <- df2 %>%
+
+  mutate(
+    score_a = as.numeric(str_extract(result, "^[0-9]+")),
+    score_b = as.numeric(str_extract(result, "[0-9]+$"))
+  ) %>%
+
+  mutate(
+    chosen_score = pmax(score_a, score_b, na.rm = TRUE),
+    chosen_answer = case_when(
+      score_a >= score_b ~ answer1,
+      TRUE ~ answer2
+    )
+  ) %>%
+
+  filter(chosen_score >= threshold_score) %>%
+
+  drop_na(Scenario, Masked_Question, chosen_answer)
+
+
+
+
+format_to_chatml <- function(scenario, question, answer) {
+  system_prompt <- paste("You are a professional and highly intuitive AI customer service assistant specialized in the domain of:", scenario)
+  
+
+  list(
+    messages = list(
+      list(role = "system", content = system_prompt),
+      list(role = "user", content = question),
+      list(role = "assistant", content = answer)
+    )
+  )
+}
+
+
+sft_list <- lapply(1:nrow(df_processed), function(i) {
+  format_to_chatml(
+    scenario = df_processed$Scenario[i],
+    question = df_processed$Masked_Question[i],
+    answer = df_processed$chosen_answer[i]
+  )
+})
+
+
+output_file <- choose.files()
+
+
+json_lines <- sapply(sft_list, function(x) {
+  toJSON(x, auto_unbox = TRUE, force = TRUE)
+})
+
+
+writeLines(json_lines, output_file, useBytes = TRUE)
+
+
+
+input_file <- choose.files()
+output_file <- choose.files()
+
+
+all_lines <- readLines(input_file, warn = FALSE)
+
+
+total_count <- length(all_lines)
+
+set.seed(2026)
+
+
+sample_size <- 169
+
+sampled_lines <- sample(all_lines, size = sample_size)
+
+
+writeLines(sampled_lines, output_file)
+
+
+
+# install.packages("jsonlite")
+library(jsonlite)
+
+file_169 <- choose.files()
+file_1331 <- choose.files()
+output_file <- choose.files()
+
+
+
+lines_169 <- readLines(file_169, warn = FALSE, encoding = "UTF-8")
+lines_1331 <- readLines(file_1331, warn = FALSE, encoding = "UTF-8")
+
+
+formatted_169 <- lapply(lines_169, function(line) {
+
+  parsed <- fromJSON(line, simplifyVector = FALSE)
+  
+
+  new_messages <- lapply(parsed$messages, function(msg) {
+
+    new_role <- switch(msg$role,
+                       "human" = "user",
+                       "gpt" = "assistant",
+                       msg$role) 
+    
+
+    list(role = new_role, content = msg$value)
+  })
+  
+
+  list(messages = new_messages)
+})
+
+
+parsed_1331 <- lapply(lines_1331, function(line) {
+  fromJSON(line, simplifyVector = FALSE)
+})
+
+
+combined_list <- c(parsed_1331, formatted_169)
+
+
+set.seed(2026)
+combined_list <- combined_list[sample(length(combined_list))]
+
+
+out_con <- file(output_file, open = "w", encoding = "UTF-8")
+
+for (item in combined_list) {
+
+  json_str <- toJSON(item, auto_unbox = TRUE)
+  writeLines(json_str, out_con)
+}
+
+close(out_con)
+
+
+```
